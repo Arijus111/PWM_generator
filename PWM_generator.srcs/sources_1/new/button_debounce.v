@@ -1,8 +1,8 @@
 `timescale 1ns / 1ps
 
-//BUTTON DEBOUNCE LOGIC MODULE
-//Synchronizes and debounces PWM frequency and duty cycle push buttons
-//Total debounce logic response time = Synchronizer (20ns) + Debouncer (40ns to 70ns)
+//BUTTON DEBOUNCE LOGIC MODULE;
+//Synchronizes and debounces PWM frequency and duty cycle push buttons;
+//RESPONSE TIME: 30ns fixed (2 sync cycles + 1 pulse cycle);
 
 //REQUIREMENTS:
 //  *Asynchronous buttons has to be synchronized with 100MHz clock;
@@ -10,16 +10,16 @@
 //  *Generate 1 tick pulse to change only 1 parameter per button push;
 
 module button_debounce(
-    input clk,                  //General 100MHz systems frequency;
-    input rst,                  //Reset signal;
-    input asynch_frequency,     //Bouncing input frequency button;
-    input asynch_duty,          //Bouncing input duty cycle button;
-    output debounced_frequency, //Synchronized and debounced frequency select button output;
-    output debounced_duty       //Synchronized and debounced duty cycle select button output;
+    input clk,                              //General 100MHz systems frequency;
+    input rst,                              //Reset signal;
+    input asynch_frequency,                 //Bouncing input frequency button;
+    input asynch_duty,                      //Bouncing input duty cycle button;
+    output reg debounced_frequency_pulse,   //Synchronized and debounced frequency select button output;
+    output reg debounced_duty_pulse         //Synchronized and debounced duty cycle select button output;
     );
 
-    //SYNCHRONIZATION WITH CLK
-    //TOTAL SYNCHRONIZATION TIME - 20ns;
+        //SYNCHRONIZATION WITH CLK;
+        //TOTAL SYNCHRONIZATION TIME - 20ns;
         reg [1:0] frequency_synchronizer;           //Double flip-flop for frequency synchronization with clk;
         reg [1:0] duty_cycle_synchronizer;          //Double flip-flop for duty-cycle synchronization with clk;
         wire synch_frequency;                       //Internal wire for synchronized frequency button connection with debounce logic;
@@ -31,66 +31,84 @@ module button_debounce(
                 duty_cycle_synchronizer <= 2'd0;    
             end
             else begin
-                frequency_synchronizer[0] <= asynch_frequency; //Frequency and duty-cycle buttons passes through registers for synchronization with posedge clk;
+                //Frequency and duty-cycle buttons passes through registers for synchronization with posedge clk;
+                frequency_synchronizer[0] <= asynch_frequency;
                 frequency_synchronizer[1] <= frequency_synchronizer[0];
                 duty_cycle_synchronizer[0] <= asynch_duty;
                 duty_cycle_synchronizer[1] <= duty_cycle_synchronizer[0];
             end
         end
-        assign synch_frequency = frequency_synchronizer[1]; //Assigns synchronized values for debounce logic
-        assign synch_duty = duty_cycle_synchronizer[1];     //Assigns synchronized values for debounce logic
+        assign synch_frequency = frequency_synchronizer[1]; //Assigns synchronized values for debounce logic;
+        assign synch_duty = duty_cycle_synchronizer[1];     //Assigns synchronized values for debounce logic;
     
-    //DEBOUNCE LOGIC
-    //MAJORITY SHIFTER LOGIC: PICKS MOST COMMON VALUE FROM 7 SAMPLES; TOTAL DEBOUNCE TIME - 40ns to 70ns;
-        reg [6:0] frequency_register;               //7-bit register for 7 frequency button samples;
-        reg [6:0] duty_register;                    //7-bit register for 7 duty-cycle button samples;
-        reg [2:0] frequency_register_sum_value;     //Sums total value of ones in frequency register;
-        reg [2:0] duty_register_sum_value;          //Sums total value of ones in duty-cycle register;
+        //DEBOUNCE LOGIC;
+        //WAITS FOR THE FIRST HIGH SAMPLE, THEN IGNORES INPUT UNTIL 11 CONSECUTIVE LOW SAMPLES;
+        //Latency - 10ns; 
+        reg frequency_ready;                //Waits for the first HIGH synch_frequency;   
+        reg duty_ready;                     //Waits for the first HIGH synch_duty;
+        reg [3:0] frequency_zero_counter;   //Waits for 11 ZEROS to enable next button sampling;
+        reg [3:0] duty_zero_counter;        //Waits for 11 ZEROS to enable next button sampling;
         
-        always@(posedge clk) begin  //Reset logic and button sample shifter;
+        //Frequency debounce block;
+        always@(posedge clk) begin
             if (rst) begin
-                frequency_register <= 7'b0000000;
-                duty_register <= 7'b0000000;
+                frequency_ready <= 1'b1;
+                frequency_zero_counter <= 4'b0;
+                debounced_frequency_pulse <= 1'b0;
             end
             else begin
-                frequency_register <= {frequency_register[5:0], synch_frequency};   //Shifts synchronized button samples into 7-bit registers LSB position;
-                duty_register <= {duty_register[5:0], synch_duty};
+                debounced_frequency_pulse <= 1'b0;          //Default output value;
+                if (frequency_ready) begin                  //Condition for first synchronized button push tick detection;
+                    if (synch_frequency) begin              //First button HIGH detected;
+                        debounced_frequency_pulse <= 1'b1;  //If first button push tick is detected, output gets HIGH for one clock period;
+                        frequency_ready <= 1'b0;            //System enters to waiting mode; 
+                        frequency_zero_counter <= 4'b0; 
+                    end
+                end
+                else begin                                          //Waiting mode logic;
+                    if (synch_frequency) begin
+                        frequency_zero_counter <= 4'b0;             //Ignores button noise if synch_frequency is HIGH;
+                    end
+                    else begin                                      //Counter logic to wait for 11 cycles without noise;
+                        if (frequency_zero_counter >= 4'd10) begin  //Waits for 110ns without HIGH noise before next sampling is enabled;
+                            frequency_ready <= 1'b1;                //Ready to sample new button push;
+                            frequency_zero_counter <= 4'd0;         //Button noise counter refresh;
+                        end
+                        else frequency_zero_counter <= frequency_zero_counter + 4'd1; //0 to 10 counter;
+                    end 
+                end 
             end
         end
         
-        integer i;  //Counter for bit sum;
-        
-        always@(*) begin    //Combinational block for frequency and duty-cycle sample registers bit sum;
-            frequency_register_sum_value = 3'd0;
-            duty_register_sum_value = 3'd0;
-            for (i=0; i<=6; i=i+1) begin    
-                frequency_register_sum_value = frequency_register_sum_value + frequency_register[i];    //frequency_register[0] + frequency_register[1] + ..
-                duty_register_sum_value = duty_register_sum_value + duty_register[i];                   //duty_register[0] + duty_register[1] + ..
-            end 
-        end
-        
-        wire frequency_majority_value;  //Output for frequency majority value detection; 
-        wire duty_majority_value;       //Output for duty-cycle majority value detection;      
-        assign frequency_majority_value = (frequency_register_sum_value >= 4);  //Decides whether frequency_register_sum_value >=4;
-        assign duty_majority_value = (duty_register_sum_value >= 4);            //Decides whether duty_register_sum_value >=4;
-        
-    //SINGLE TICK GENERATOR LOGIC
-    //PURPOSE: GENERATE ONLY 1 TICK PULSE FOR 1 BUTTON PUSH;
-    //COMPARES PREVIOUS AND CURRENT BUTTON VALUES FOR EDGE DETECTION;
-        reg frequency_button_tick_prev; //Register for previous frequency value;
-        reg duty_button_tick_prev;      //Register for previous duty-cycle value;
-    
-        always@(posedge clk) begin      //Previous value reset and storage block;
+        //Identical block for duty-cycle button debounce logic;
+        always@(posedge clk) begin
             if (rst) begin
-                frequency_button_tick_prev <= 1'b0;
-                duty_button_tick_prev <= 1'b0;
+                duty_ready <= 1'b1;
+                duty_zero_counter <= 4'b0;
+                debounced_duty_pulse <= 1'b0;
             end
             else begin
-                frequency_button_tick_prev <= frequency_majority_value; //Stores previous frequency button value;
-                duty_button_tick_prev <= duty_majority_value;           //Stores previous duty-cycle button value;
+                debounced_duty_pulse <= 1'b0; 
+                if (duty_ready) begin
+                    if (synch_duty) begin
+                        debounced_duty_pulse <= 1'b1;
+                        duty_ready <= 1'b0;
+                        duty_zero_counter <= 4'b0; 
+                    end
+                end
+                else begin
+                    if (synch_duty) begin
+                        duty_zero_counter <= 4'b0;
+                    end
+                    else begin
+                        if (duty_zero_counter >= 4'd10) begin  
+                            duty_ready <= 1'b1;                
+                            duty_zero_counter <= 4'd0;
+                        end
+                        else duty_zero_counter <= duty_zero_counter + 4'd1;
+                    end 
+                end 
             end
-        end
-        
-        assign debounced_frequency = frequency_majority_value && !frequency_button_tick_prev;   //Edge case detection - signal rises to HIGH for 1 cycle
-        assign debounced_duty = duty_majority_value && !duty_button_tick_prev;                  //Edge case detection - signal rises to HIGH for 1 cycle      
+        end  
+              
 endmodule
