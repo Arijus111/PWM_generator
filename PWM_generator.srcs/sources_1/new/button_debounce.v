@@ -20,8 +20,8 @@ module button_debounce(
 
         //SYNCHRONIZATION WITH CLK;
         //TOTAL SYNCHRONIZATION TIME - 20ns;
-        reg [1:0] frequency_synchronizer;           //Double flip-flop for frequency synchronization with clk;
-        reg [1:0] duty_cycle_synchronizer;          //Double flip-flop for duty-cycle synchronization with clk;
+        reg [1:0] frequency_synchronizer;           //Double flip-flop register for frequency synchronization with clk;
+        reg [1:0] duty_cycle_synchronizer;          //Double flip-flop register for duty-cycle synchronization with clk;
         wire synch_frequency;                       //Internal wire for synchronized frequency button connection with debounce logic;
         wire synch_duty;                            //Internal wire for synchronized duty-cycle button connection with debounce logic;
         
