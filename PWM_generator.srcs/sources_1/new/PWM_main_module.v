@@ -47,8 +47,6 @@ reg [9:0] T_PWM;            //PWM period value;
 reg [6:0] period_tenth;     //T_PWM/10;
 
 always@(*) begin
-    T_PWM = 0;
-    period_tenth = 0;
     case (frequency_index) //T_PWM and period_tenth is selected by frequency_index;
         4'd0: begin
             T_PWM = PERIOD_1MHZ;
@@ -102,27 +100,27 @@ assign duty_value = period_tenth * duty_index;  //Calculates duty-cycle period f
 
 //PWM generator block
 reg [9:0] PWM_counter;      //PWM cycle counter;
-reg [9:0] active_T_PWM;     //Stores active frequency button value to prevent frequency change during PWM pulse;
-reg [9:0] active_duty;      //Stores active duty_cycle button value to prevent frequency change during PWM pulse;
+reg [9:0] active_T_PWM;     //Stores active frequency button value to prevent frequency change during PWM active period;
+reg [9:0] active_duty;      //Stores active duty_cycle button value to prevent duty-cycle change during PWM active period;
 
-always@(posedge clk) begin
+always@(posedge clk) begin //Block holds currently active PWM period and duty-cycle;
     if (rst) begin
         PWM_counter <= 10'd0;
-        active_T_PWM <= 10'd0;
+        active_T_PWM <= PERIOD_1MHZ;
         active_duty <= 10'd0;
     end
     else begin
-        if (PWM_counter >= active_T_PWM) begin
-            PWM_counter <= 10'd0;
-            active_T_PWM <= T_PWM;
-            active_duty <= duty_value;
+        if (PWM_counter >= active_T_PWM-1) begin    //When counter reaches PWM period, it gets new value from frequency multiplexer and new duty-cycle value;
+            PWM_counter <= 10'd0;                   //Counter restart;
+            active_T_PWM <= T_PWM;                  //New period value load;
+            active_duty <= duty_value;              //New duty-cycle value load;
         end
         else begin
-            PWM_counter <= PWM_counter + 10'd1;
+            PWM_counter <= PWM_counter + 10'd1; //PWM tick counter;
         end
     end
 end
 
-assign PWM_signal = (PWM_counter <= active_duty) ? 1 : 0;
+assign PWM_signal = (PWM_counter < active_duty) ? 1 : 0; //Signal level assignment (duty-cycle);
 
 endmodule
