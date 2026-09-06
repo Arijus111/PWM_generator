@@ -11,6 +11,7 @@
 //  *At 100% duty cycle, the PWM output must remain HIGH;
 //  *When 100% is reached, the next button press must set the duty cycle to 0%;
 //  *The PWM pulse width must be recalculated automatically from the selected frequency and duty-cycle;
+
 module PWM_main_module(
     input clk,                          //100MHz clk;
     input rst,                          //Reset;

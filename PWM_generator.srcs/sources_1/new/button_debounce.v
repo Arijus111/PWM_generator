@@ -42,7 +42,7 @@ module button_debounce(
         assign synch_duty = duty_cycle_synchronizer[1];     //Assigns synchronized values for debounce logic;
     
         //DEBOUNCE LOGIC;
-        //WAITS FOR THE FIRST HIGH SAMPLE, THEN IGNORES INPUT UNTIL 11 CONSECUTIVE LOW SAMPLES;
+        //WAITS FOR THE FIRST HIGH SAMPLE, THEN IGNORES INPUT UNTIL 10 CONSECUTIVE LOW SAMPLES;
         //Latency - 10ns; 
         reg frequency_ready;                //Waits for the first HIGH synch_frequency;   
         reg duty_ready;                     //Waits for the first HIGH synch_duty;
@@ -70,7 +70,7 @@ module button_debounce(
                         frequency_zero_counter <= 4'b0;             //Ignores button noise if synch_frequency is HIGH;
                     end
                     else begin                                      //Counter logic to wait for 11 cycles without noise;
-                        if (frequency_zero_counter >= 4'd10) begin  //Waits for 110ns without HIGH noise before next sampling is enabled;
+                        if (frequency_zero_counter >= 4'd9) begin   //Waits for 100ns without HIGH noise before next sampling is enabled;
                             frequency_ready <= 1'b1;                //Ready to sample new button push;
                             frequency_zero_counter <= 4'd0;         //Button noise counter refresh;
                         end
@@ -101,7 +101,7 @@ module button_debounce(
                         duty_zero_counter <= 4'b0;
                     end
                     else begin
-                        if (duty_zero_counter >= 4'd10) begin  
+                        if (duty_zero_counter >= 4'd9) begin  
                             duty_ready <= 1'b1;                
                             duty_zero_counter <= 4'd0;
                         end
