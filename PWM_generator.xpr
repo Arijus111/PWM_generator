@@ -60,7 +60,7 @@
     <Option Name="IPStaticSourceDir" Val="$PIPUSERFILESDIR/ipstatic"/>
     <Option Name="EnableBDX" Val="FALSE"/>
     <Option Name="DSABoardId" Val="basys3"/>
-    <Option Name="WTXSimLaunchSim" Val="10"/>
+    <Option Name="WTXSimLaunchSim" Val="20"/>
     <Option Name="WTModelSimLaunchSim" Val="0"/>
     <Option Name="WTQuestaLaunchSim" Val="0"/>
     <Option Name="WTIesLaunchSim" Val="0"/>
@@ -134,8 +134,10 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PSRCDIR/sim_1/new/Datapath_tb.v">
+      <File Path="$PSRCDIR/sim_1/imports/new/Datapath_tb.sv">
         <FileInfo>
+          <Attr Name="ImportPath" Val="$PSRCDIR/sim_1/new/Datapath_tb.sv"/>
+          <Attr Name="ImportTime" Val="1788809036"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>

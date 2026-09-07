@@ -7,9 +7,11 @@ reg rst;                //Input rst;
 reg asynch_frequency;   //Input asynchronious bouncing frequency button;
 reg asynch_duty;        //Input asynchronious bouncing duty-cycle button;
 wire PWM_signal;        //PWM signal generator output;
-integer per, duty;      //PWM period and duty-cycle values;
+integer per, duty;      //PWM period and duty-cycle variables for pwm_measure task;
+integer pwm_count = 0;  //PWM cycle counter for pwm_measure task;
+
 initial clk = 0;
-always #5 clk = ~clk;
+always #5 clk = ~clk;   //Clk toggling;
 
 Datapath DUT(           //Datapath module inicialization;
     .clk(clk),
@@ -19,7 +21,18 @@ Datapath DUT(           //Datapath module inicialization;
     .PWM_signal(PWM_signal)
     );
 
-integer pwm_count = 0;
+//Reset task;
+task reset ();
+    begin
+        rst = 1;
+        asynch_frequency = 0;
+        asynch_duty = 0;
+        #300;
+        rst = 0;
+        #300;
+    end
+endtask
+
 
 //PWM period and duty-cycle counter task;
 task pwm_measure (
@@ -66,12 +79,7 @@ task pwm_measure (
 endtask
 
 initial begin
-rst = 1;
-asynch_frequency = 0;
-asynch_duty = 0;
-#20;
-rst = 0;
-#500;
+reset();
 pwm_measure(per, duty);
 $display("T=%0d HIGH=%0d", per, duty);
 $finish;
