@@ -113,12 +113,12 @@ for the contact to settle. The low-sample counter tracks this:
 **Single button press with contact bounce.** The bouncing input produces exactly
 one `debounced_frequency_pulse`, one clock cycle wide.
 
-![Single debounced button press](docs/Button_response_time_25ns.png)
+![Single debounced button press](docs/images/Button_response_time_25ns.png)
 
 **Button hold.** The pulse sets HIGH once on the first edge and does not repeat
 for the entire duration of the press.
 
-![Long press produces only one pulse](docs/Button_hold_for_800ns.png)
+![Long press produces only one pulse](docs/images/Button_hold_for_800ns.png)
 
 ---
 
@@ -156,7 +156,7 @@ After a reset, 5 duty-cycle button presses sets the duty cycle at 50 %. The freq
 
 ---
 
-![Testbench simulation results](docs/Final_TB_results.png)
+![Testbench simulation results](docs/images/Final_TB_results.png)
 
 ---
 
